@@ -4,11 +4,7 @@ A small library to sign S3 requests, requires Python 3.
 
 ## Installation
 
-With [μpkg](https://github.com/orbit-online/upkg)
-
-```
-upkg install -g orbit-online/sign-s3@<VERSION>
-```
+See [the latest release](https://github.com/orbit-online/sign-s3/releases/latest) for instructions.
 
 ## Usage
 

@@ -1,0 +1,14 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    name: Create GitHub release
+    steps:
+    - uses: orbit-online/upkg-release@v1
