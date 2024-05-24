@@ -2,6 +2,12 @@
 
 import urllib.parse
 from collections import namedtuple
+import time
+import os
+import base64
+import hmac
+import hashlib
+import sys
 
 usage = """sign-s3 - Signs an S3 request
 Usage:
@@ -11,7 +17,7 @@ Usage:
 Options:
   -h, --help      show this help
   -v, --valid S   validity in seconds [default: 3600]
-  -r, --region R  S3 region [default: eu-west-1]
+  -r, --region R  S3 region [default: $AWS_DEFAULT_REGION]
   -u, --url       Only output the URL
   -c, --curl      Only output the cURL command
 
@@ -25,9 +31,6 @@ url_tpl = "https://s3-{region}.amazonaws.com/{path}?AWSAccessKeyId={access_key}&
 
 
 def gen_signature(secret, sign_string):
-	import base64
-	import hmac
-	import hashlib
 	return urllib.parse.quote(base64.encodebytes(hmac.new(bytes(secret, 'ascii'), bytes(sign_string, 'ascii'), digestmod=hashlib.sha1).digest()).strip())
 
 
@@ -58,27 +61,34 @@ def sign_get(key, region, obj_path, expires):
 
 
 def sign(opts):
-	import time
-	import os
 	key = AWSKey(os.getenv('AWS_ACCESS_KEY_ID', opts.get('ACCESS_KEY')), os.getenv('AWS_SECRET_ACCESS_KEY', opts.get('SECRET_KEY')))
 	obj_path = opts['BUCKET'] + '/' + urllib.parse.quote(opts['OBJECT'])
+	region = opts['--region'] if opts['--region'] != "$AWS_DEFAULT_REGION" else os.getenv('AWS_DEFAULT_REGION')
 	expires = int(time.time() + int(opts['--valid']))
 	if opts['put']:
-		return sign_put(key, opts['--region'], obj_path, expires, opts['--mime-type'], opts['--public'])
+		return sign_put(key, region, obj_path, expires, opts['--mime-type'], opts['--public'])
 	if opts['get']:
-		return sign_get(key, opts['--region'], obj_path, expires)
+		return sign_get(key, region, obj_path, expires)
 
 
 def main():
-	import docopt
-	opts = docopt.docopt(usage)
-	curl_req, url = sign(opts)
-	if opts['--curl']:
-		print(curl_req)
-	elif opts['--url']:
+	if os.getenv('GITHUB_ACTIONS') == 'true' and os.getenv('SIMPLE_MODE') == 'true':
+		curl_req, url = sign({
+			'BUCKET': sys.argv[1],
+			'OBJECT': sys.argv[2],
+			'VALID': sys.argv[3],
+		})
 		print(url)
 	else:
-		print("CURL Request: %s" % curl_req)
-		print("URL: %s" % url)
+		import docopt
+		opts = docopt.docopt(usage)
+		curl_req, url = sign(opts)
+		if opts['--curl']:
+			print(curl_req)
+		elif opts['--url']:
+			print(url)
+		else:
+			print("CURL Request: %s" % curl_req)
+			print("URL: %s" % url)
 
 main()

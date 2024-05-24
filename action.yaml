@@ -1,0 +1,36 @@
+name: sign-s3
+description: Sign an S3 URL
+inputs:
+  bucket:
+    description: Name of the bucket
+    required: true
+  object:
+    description: Name of the object
+    required: true
+  region:
+    description: The region of the URL endpoint
+    required: true
+  access-key-id:
+    description: The access key ID to sign the URL with
+    required: true
+  secret-access-key:
+    description: The secret access key to sign the URL with
+    required: true
+  valid-for:
+    description: Amount of time in seconds the URL should be valid for
+    required: true
+outputs:
+  url:
+    description: The signed URL
+    value: ${{ steps.url.outputs.url }}
+runs:
+  using: composite
+  steps:
+  - name: Sign the S3 URL
+    id: url
+    shell: bash
+    run: printf "url=%s\n" "$(bin/sign-s3 "${{ inputs.bucket }}" "${{ inputs.object }}" "${{ inputs.valid-for }}")" >> $GITHUB_OUTPUT
+    env:
+      AWS_ACCESS_KEY_ID: ${{ inputs.access-key-id }}
+      AWS_SECRET_ACCESS_KEY: ${{ inputs.secret-access-key }}
+      AWS_DEFAULT_REGION: ${{ inputs.region }}
